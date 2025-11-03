@@ -178,6 +178,32 @@ impl CharacterSet for PubidChar {
     }
 }
 
+/// Alphabetical Character set.
+///
+/// Only contains a-z and A-Z.
+pub struct LatinAlphabet;
+
+impl CharacterSet for LatinAlphabet {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.as_bytes().first()? {
+            0x41..=0x5A | 0x61..=0x7A => Some(1),
+            _ => None,
+        }
+    }
+}
+
+pub struct ExtendedLatinAlphabet;
+
+impl CharacterSet for ExtendedLatinAlphabet {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.as_bytes().first()? {
+            0x30..=0x39 | 0x41..=0x5A | 0x61..=0x7A => Some(1),
+            0x2D | 0x2E | 0x5F => Some(1),
+            _ => None,
+        }
+    }
+}
+
 /// Parse the next literal from a given charset.
 ///
 
@@ -226,28 +252,6 @@ pub fn expect_whitespaces(input: &mut &str) -> Result<usize, String> {
         0 => Err(format!("Expected whitespaces")),
         more => Ok(more),
     }
-}
-
-/// Expect to parse any quote kind, and return the quote kind parsed.
-pub fn expect_quoted_litteral<'src>(input: &mut &'src str) -> Result<&'src str, String> {
-    let quote_kind = match input.as_bytes().first() {
-        Some(0x22 /* Double quotes */) => {
-            *input = &input[1..];
-            '"'
-        }
-        Some(0x27 /* Single quote */) => {
-            *input = &input[1..];
-            '\''
-        }
-        _ => return Err(format!("Expected \"\"\", \"'\"")),
-    };
-    let next_quote_pos = input
-        .find(quote_kind)
-        .ok_or_else(|| format!("Unable to find closing quote for {quote_kind}"))?;
-    let (quoted, rest) = input.split_at(next_quote_pos);
-    /* Skip the quote, therefore we take the rest at 1.. */
-    *input = &rest[1..];
-    Ok(quoted)
 }
 
 /// Expects a fixed byte sequence, or throws an error.
