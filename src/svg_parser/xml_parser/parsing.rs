@@ -1,7 +1,7 @@
 /// The character set trait allows to define characters set,
 /// and create functions to expect chars and strings that are only chars from within the set.
 /// This is useful to parse litterals that can only be from given sets.
-trait CharacterSet {
+pub trait CharacterSet {
     /// Returns whether the first character of the given string is in the given character set.
     /// If the character is in it, return Some with the number of bytes that characters takes.
     /// Otherwise, returns None when the first character is not in the character set.
@@ -204,18 +204,70 @@ impl CharacterSet for ExtendedLatinAlphabet {
     }
 }
 
-/// Parse the next literal from a given charset.
-///
+pub struct SingleQuotedAttValueCharacters;
 
+impl CharacterSet for SingleQuotedAttValueCharacters {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.char_indices().next()? {
+            (_, '<') => None,
+            (_, '&') => None,
+            (_, '\'') => None,
+            (l, _) => Some(l),
+        }
+    }
+}
+
+pub struct DoubleQuotedAttValueCharacters;
+
+impl CharacterSet for DoubleQuotedAttValueCharacters {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.char_indices().next()? {
+            (_, '<') => None,
+            (_, '&') => None,
+            (_, '"') => None,
+            (l, _) => Some(l),
+        }
+    }
+}
+
+pub struct SingleQuotedEntityValueCharacters;
+
+impl CharacterSet for SingleQuotedEntityValueCharacters {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.char_indices().next()? {
+            (_, '<') => None,
+            (_, '&') => None,
+            (_, '%') => None,
+            (_, '\'') => None,
+            (l, _) => Some(l),
+        }
+    }
+}
+
+pub struct DoubleQuotedEntityValueCharacters;
+
+impl CharacterSet for DoubleQuotedEntityValueCharacters {
+    fn match_first(input: &str) -> Option<usize> {
+        match input.char_indices().next()? {
+            (_, '<') => None,
+            (_, '&') => None,
+            (_, '%') => None,
+            (_, '"') => None,
+            (l, _) => Some(l),
+        }
+    }
+}
+
+/// Parse the next literal from a given charset.
 /// Expect a string literal.
 ///
 /// The first character is from the `First` char set.
 /// The rest of the string is from the `Rest` charset.
 ///
 /// This will only fail if the first encounterd character is not in the First char set.
-pub fn expect_string<'src, First: CharacterSet, Rest: CharacterSet>(input: &mut &'src str) -> Result<&'src str, String> {
+pub fn expect_string<'src, Start: CharacterSet, Rest: CharacterSet>(input: &mut &'src str) -> Result<&'src str, String> {
     let start = *input;
-    let mut length = First::match_first(input).ok_or_else(|| format!("First char not from character set"))?;
+    let mut length = Start::match_first(input).ok_or_else(|| format!("First char not from character set"))?;
     while let Some(additional) = Rest::match_first(input) {
         length += additional;
     }
